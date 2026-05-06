@@ -1,0 +1,10 @@
+
+Log Report
+====================
+File: sample.log
+Total Logs: 18
+Errors: 6
+Warnings: 5
+Info: 7
+Unknown: 0
+Generated At: 2026-05-06 15:06:15.402928

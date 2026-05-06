@@ -1,0 +1,5 @@
+Metric,Value
+ERROR,6
+WARNING,5
+INFO,7
+UNKNOWN,0

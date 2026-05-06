@@ -1,0 +1,205 @@
+#!/usr/bin/env python3
+
+import re
+import os
+import sys
+from datetime import datetime
+import csv
+
+# -----------------------------
+# GLOBAL VARIABLES
+# -----------------------------
+logs = []
+loaded_file = None
+
+# -----------------------------
+# LOAD FILE
+# -----------------------------
+def load_file():
+    global logs, loaded_file
+    file_path = input("Enter log file path (.txt/.log): ")
+
+    if not os.path.exists(file_path):
+        print("Error: File not found.")
+        return
+
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            logs = f.readlines()
+
+            # Improved empty check
+            if not logs or all(line.strip() == "" for line in logs):
+                print("Error: File is empty or contains only blank lines.")
+                return
+
+            loaded_file = file_path
+            print(f"Loaded {len(logs)} log entries.")
+    except Exception as e:
+        print(f"Error reading file: {e}")
+
+# -----------------------------
+# PARSE LOG
+# -----------------------------
+def parse_log(line):
+    pattern = r"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}).*?(ERROR|WARNING|INFO).*"
+    match = re.search(pattern, line, re.IGNORECASE)
+
+    if match:
+        timestamp = match.group(1)
+        level = match.group(2).upper()
+    else:
+        timestamp = None
+        level = "UNKNOWN"
+
+    return timestamp, level
+
+# -----------------------------
+# ANALYZE LOGS
+# -----------------------------
+def analyze_logs():
+    if not logs:
+        print("No logs loaded.")
+        return
+
+    counts = {"ERROR": 0, "WARNING": 0, "INFO": 0, "UNKNOWN": 0}
+
+    for line in logs:
+        _, level = parse_log(line)
+        if level in counts:
+            counts[level] += 1
+        else:
+            counts["UNKNOWN"] += 1
+
+    print("\n--- Log Analysis ---")
+    for k, v in counts.items():
+        print(f"{k}: {v}")
+
+    return counts
+
+# -----------------------------
+# SEARCH LOGS
+# -----------------------------
+def search_logs():
+    if not logs:
+        print("No logs loaded.")
+        return
+
+    keyword = input("Enter keyword to search: ").lower()
+
+    results = [line for line in logs if keyword in line.lower()]
+
+    print(f"\nFound {len(results)} matching logs:")
+    for line in results[:10]:
+        print(line.strip())
+
+# -----------------------------
+# FILTER LOGS
+# -----------------------------
+def filter_logs():
+    if not logs:
+        print("No logs loaded.")
+        return
+
+    level_filter = input("Enter level (ERROR/WARNING/INFO or leave blank): ").upper()
+    date_filter = input("Enter date (YYYY-MM-DD or leave blank): ")
+
+    results = []
+
+    for line in logs:
+        timestamp, level = parse_log(line)
+
+        if level_filter and level != level_filter:
+            continue
+
+        if date_filter and timestamp:
+            if not timestamp.startswith(date_filter):
+                continue
+
+        results.append(line)
+
+    print(f"\nFiltered results: {len(results)}")
+    for line in results[:10]:
+        print(line.strip())
+
+# -----------------------------
+# GENERATE REPORT (AUTO SAVE)
+# -----------------------------
+def generate_report():
+    if not logs:
+        print("No logs loaded.")
+        return
+
+    counts = analyze_logs()
+    total = sum(counts.values())
+
+    report_text = f"""
+Log Report
+====================
+File: {loaded_file}
+Total Logs: {total}
+Errors: {counts['ERROR']}
+Warnings: {counts['WARNING']}
+Info: {counts['INFO']}
+Unknown: {counts['UNKNOWN']}
+Generated At: {datetime.now()}
+"""
+
+    print(report_text)
+
+    # AUTO SAVE BOTH FILES
+    try:
+        # Save TXT
+        with open('report.txt', 'w') as f:
+            f.write(report_text)
+
+        # Save CSV
+        with open('report.csv', 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(["Metric", "Value"])
+            writer.writerow(["Total Logs", total])
+            for k, v in counts.items():
+                writer.writerow([k, v])
+
+        print("Report automatically saved as report.txt and report.csv")
+
+    except Exception as e:
+        print(f"Error saving report: {e}")
+
+# -----------------------------
+# MENU
+# -----------------------------
+def menu():
+    while True:
+        print("""
+--- System Log Analyzer ---
+1. Load File
+2. Analyze Logs
+3. Search Logs
+4. Filter Logs
+5. Generate Report (Auto Save)
+6. Exit
+""")
+
+        choice = input("Enter choice: ")
+
+        if choice == '1':
+            load_file()
+        elif choice == '2':
+            analyze_logs()
+        elif choice == '3':
+            search_logs()
+        elif choice == '4':
+            filter_logs()
+        elif choice == '5':
+            generate_report()
+        elif choice == '6':
+            print("Exiting...")
+            sys.exit()
+        else:
+            print("Invalid choice.")
+
+# -----------------------------
+# MAIN
+# -----------------------------
+if __name__ == "__main__":
+    menu()
